@@ -1,4 +1,4 @@
-module github.com/fkautz/gitbom
+module github.com/fkautz/gitbom-go
 
 go 1.17
 
