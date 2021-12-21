@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSha1GitRef(t *testing.T) {
