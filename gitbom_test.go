@@ -89,6 +89,7 @@ func TestNestedWorkflow(t *testing.T) {
 	assert.Equal(t, "blob 23294b0610492cf55c1c4835216f20d376a287dd bom 588ed637c6073a58e79f4fc63a85158eafed022a2b791f7765c28a3c3d1797d6\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n", gb2.String())
 
 	opaqueBom, err := NewOpaqueGitBom("a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812")
+	assert.NoError(t, err)
 	err = gb2.AddSha256Reference([]byte(string5), opaqueBom)
 	assert.NoError(t, err)
 	assert.Equal(t, "blob 23294b0610492cf55c1c4835216f20d376a287dd bom 588ed637c6073a58e79f4fc63a85158eafed022a2b791f7765c28a3c3d1797d6\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\nblob dcf17826ff7a346e6b09704314fb5ef4c9fcceb85c2936b45cab13bc7167991a bom a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812\n", gb2.String())
