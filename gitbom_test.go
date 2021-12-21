@@ -98,8 +98,10 @@ func TestNestedWorkflow(t *testing.T) {
 func TestInvalidOpaqueGitBom(t *testing.T) {
 	_, err := NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287dd")
 	assert.NoError(t, err)
+}
 
-	_, err = NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287d")
+func TestInvalidOpaqueGitBom_TooFewCharacters(t *testing.T) {
+	_, err := NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287d")
 	assert.Error(t, err)
 }
 
