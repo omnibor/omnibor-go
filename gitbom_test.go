@@ -107,8 +107,10 @@ func TestInvalidOpaqueGitBom(t *testing.T) {
 
 	_, err = NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287dd ")
 	assert.Error(t, err)
+}
 
-	_, err = NewOpaqueGitBom(" 23294b0610492cf55c1c4835216f20d376a287dd ")
+func TestInvalidOpaqueGitBom_ExtraSpaces(t *testing.T) {
+	_, err := NewOpaqueGitBom(" 23294b0610492cf55c1c4835216f20d376a287dd ")
 	assert.Error(t, err)
 }
 
