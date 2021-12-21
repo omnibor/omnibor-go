@@ -45,9 +45,9 @@ func TestFlatWorkflow(t *testing.T) {
 	string2 := "world"
 
 	gb := NewGitBom()
-	err := gb.AddSha1GitRefFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
+	err := gb.AddSha1ReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
-	err = gb.AddSha1GitRefFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
+	err = gb.AddSha1ReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
 	assert.NoError(t, err)
 	expected := "blob 04fea06420ca60892f73becee3614f6d023a4b7f\n" +
 		"blob b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0\n"
@@ -63,9 +63,9 @@ func TestNestedWorkflow(t *testing.T) {
 	string2 := "world"
 
 	gb := NewGitBom()
-	err := gb.AddSha1GitRefFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
+	err := gb.AddSha1ReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
-	err = gb.AddSha1GitRefFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
+	err = gb.AddSha1ReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
 	assert.NoError(t, err)
 	expected := "blob 04fea06420ca60892f73becee3614f6d023a4b7f\n" +
 		"blob b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0\n"
@@ -80,15 +80,15 @@ func TestNestedWorkflow(t *testing.T) {
 
 	gb2 := NewGitBom()
 
-	err = gb2.AddSha1GitRef([]byte(string3), gb)
+	err = gb2.AddSha1Reference([]byte(string3), gb)
 	assert.NoError(t, err)
 
-	err = gb2.AddSha1GitRef([]byte(string4), nil)
+	err = gb2.AddSha1Reference([]byte(string4), nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "blob 23294b0610492cf55c1c4835216f20d376a287dd bom 588ed637c6073a58e79f4fc63a85158eafed022a2b791f7765c28a3c3d1797d6\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n", gb2.String())
 
 	opaqueBom, err := NewOpaqueGitBom("a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812")
-	err = gb2.AddSha256GitRef([]byte(string5), opaqueBom)
+	err = gb2.AddSha256Reference([]byte(string5), opaqueBom)
 	assert.NoError(t, err)
 	assert.Equal(t, "blob 23294b0610492cf55c1c4835216f20d376a287dd bom 588ed637c6073a58e79f4fc63a85158eafed022a2b791f7765c28a3c3d1797d6\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\nblob dcf17826ff7a346e6b09704314fb5ef4c9fcceb85c2936b45cab13bc7167991a bom a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812\n", gb2.String())
 }
