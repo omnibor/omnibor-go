@@ -101,10 +101,13 @@ func TestInvalidOpaqueGitBom(t *testing.T) {
 
 	_, err = NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287d")
 	assert.Error(t, err)
+}
 
-	_, err = NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287dg")
+func TestInvalidOpaqueGitBom_NonHexCharacter(t *testing.T) {
+	_, err := NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287dg")
 	assert.Error(t, err)
 }
+
 func TestInvalidOpaqueGitBom_ExtraTrailingSpace(t *testing.T) {
 	_, err := NewOpaqueGitBom("23294b0610492cf55c1c4835216f20d376a287dd ")
 	assert.Error(t, err)
