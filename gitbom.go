@@ -31,16 +31,16 @@ import (
 	"strings"
 )
 
-// GitBom provides a common interface that assists with the creation and management of a GitBOM document.
-type GitBom interface {
-	OpaqueGitBom
+// ArtifactTree provides a common interface that assists with the creation and management of a GitBOM document.
+type ArtifactTree interface {
+	Identifier
 
 	// AddSha1Reference adds a SHA1 based git reference to the current GitBOM document.
 	// obj []byte is the byte array to be tagged in the GitRef.
 	// bom OpaqueBom is
 	// The resulting reference is based on the GitRef format.
 	// It returns an error if the SHA1 implementation fails.
-	AddSha1Reference(obj []byte, bom OpaqueGitBom) error
+	AddSha1Reference(obj []byte, bom Identifier) error
 
 	// AddSha1ReferenceFromReader adds a SHA1 based git reference to the current GitBOM document.
 	// The resulting reference is based on the GitRef format.
@@ -49,13 +49,13 @@ type GitBom interface {
 	// Any other return value from Reader is an error.
 	// The object length must be included.
 	// If the amount of bytes read does not match the stated object length, an error is returned.
-	AddSha1ReferenceFromReader(reader io.Reader, bom OpaqueGitBom, objLength int64) error
+	AddSha1ReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error
 
 	// AddSha256Reference see AddSha1Reference. A SHA256 hasher is used instead of SHA1.
-	AddSha256Reference(obj []byte, bom OpaqueGitBom) error
+	AddSha256Reference(obj []byte, bom Identifier) error
 
 	// AddSha256ReferenceFromReader see AddSha1ReferenceFromReader. A SHA256 hasher is used instead of SHA1.
-	AddSha256ReferenceFromReader(reader io.Reader, bom OpaqueGitBom, objLength int64) error
+	AddSha256ReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error
 
 	// References Returns a lsit of references in the order it will be printed.
 	References() []Reference
@@ -74,10 +74,10 @@ type Reference interface {
 	// Identity returns the GitRef identity of the object as a hex string.
 	Identity() string
 
-	// Bom returns an OpaqueGitBom representing the dependency tree of the object represented by the Identity
-	Bom() OpaqueGitBom
+	// Bom returns an Identifier representing the dependency tree of the object represented by the Identity
+	Bom() Identifier
 
-	// String returns a GitBom entry represented by this Reference.
+	// String returns a ArtifactTree entry represented by this Reference.
 	String() string
 }
 
@@ -97,7 +97,7 @@ func (b by) sort(refs []Reference) {
 
 type reference struct {
 	identity string
-	bom      OpaqueGitBom
+	bom      Identifier
 }
 
 type referenceSort struct {
@@ -121,7 +121,7 @@ func (ref reference) Identity() string {
 	return ref.identity
 }
 
-func (ref reference) Bom() OpaqueGitBom {
+func (ref reference) Bom() Identifier {
 	return ref.Bom()
 }
 
@@ -135,7 +135,7 @@ func (ref reference) String() string {
 	return res
 }
 
-type OpaqueGitBom interface {
+type Identifier interface {
 	Identity() string
 }
 
@@ -143,7 +143,7 @@ type gitBom struct {
 	gitRefs []Reference
 }
 
-// NewGitBom creates a new GitBom object.
+// NewGitBom creates a new ArtifactTree object.
 // Thread Safety: none, apply your own controls.
 //
 // Adding duplicate objects with the same Reference identity results in only one Reference entry.
@@ -151,34 +151,34 @@ type gitBom struct {
 //
 // Implementation details:
 // Adding a Reference is O(n) to discover duplicates.
-// Generating a GitBom is O(n*log(n)) as it sorts the existing refs.
-func NewGitBom() GitBom {
+// Generating a ArtifactTree is O(n*log(n)) as it sorts the existing refs.
+func NewGitBom() ArtifactTree {
 	return &gitBom{}
 }
 
-func (srv *gitBom) AddSha1Reference(obj []byte, bom OpaqueGitBom) error {
+func (srv *gitBom) AddSha1Reference(obj []byte, bom Identifier) error {
 	hashAlgorithm := sha1.New()
 	reader := bytes.NewBuffer(obj)
 	return srv.addGitRef(reader, bom, hashAlgorithm, int64(len(obj)))
 }
 
-func (srv *gitBom) AddSha256Reference(obj []byte, bom OpaqueGitBom) error {
+func (srv *gitBom) AddSha256Reference(obj []byte, bom Identifier) error {
 	hashAlgorithm := sha256.New()
 	reader := bytes.NewBuffer(obj)
 	return srv.addGitRef(reader, bom, hashAlgorithm, int64(len(obj)))
 }
 
-func (srv *gitBom) AddSha1ReferenceFromReader(reader io.Reader, bom OpaqueGitBom, objLength int64) error {
+func (srv *gitBom) AddSha1ReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error {
 	hashAlgorithm := sha1.New()
 	return srv.addGitRef(reader, bom, hashAlgorithm, objLength)
 }
 
-func (srv *gitBom) AddSha256ReferenceFromReader(reader io.Reader, bom OpaqueGitBom, objLength int64) error {
+func (srv *gitBom) AddSha256ReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error {
 	hashAlgorithm := sha256.New()
 	return srv.addGitRef(reader, bom, hashAlgorithm, objLength)
 }
 
-func (srv *gitBom) addGitRef(reader io.Reader, bom OpaqueGitBom, hashAlgorithm hash.Hash, length int64) error {
+func (srv *gitBom) addGitRef(reader io.Reader, bom Identifier, hashAlgorithm hash.Hash, length int64) error {
 	identity, err := generateGitHash(reader, hashAlgorithm, length)
 	if err != nil {
 		return err
@@ -273,7 +273,7 @@ func (gb opaqueGitBom) Identity() string {
 	return gb.identity
 }
 
-func NewOpaqueGitBom(identity string) (OpaqueGitBom, error) {
+func NewOpaqueGitBom(identity string) (Identifier, error) {
 	// TODO check if it matches the format
 	_, err := hex.DecodeString(identity)
 	if err != nil {
