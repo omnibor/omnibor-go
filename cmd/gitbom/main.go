@@ -29,7 +29,12 @@ func addToGitBom(gb gitbom.ArtifactTree, fileName string) error {
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func(f *os.File) {
+				err := f.Close()
+				if err != nil {
+					log.Printf("error closing %s: %s", path, err)
+				}
+			}(f)
 
 			if err := gb.AddSha1ReferenceFromReader(f, nil, info.Size()); err != nil {
 				return err
