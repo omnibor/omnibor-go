@@ -37,7 +37,7 @@ type ArtifactTree interface {
 
 	// AddSha1Reference adds a SHA1 based git reference to the current GitBOM document.
 	// obj []byte is the byte array to be tagged in the GitRef.
-	// bom OpaqueBom is
+	// bom Identifier is the gitbom identifier of the artifact tree used to create the object.
 	// The resulting reference is based on the GitRef format.
 	// It returns an error if the SHA1 implementation fails.
 	AddSha1Reference(obj []byte, bom Identifier) error
@@ -265,21 +265,21 @@ func generateGitHash(reader io.Reader, hashAlgorithm hash.Hash, length int64) (s
 	return hashStr, nil
 }
 
-type opaqueGitBom struct {
+type identifier struct {
 	identity string
 }
 
-func (gb opaqueGitBom) Identity() string {
+func (gb identifier) Identity() string {
 	return gb.identity
 }
 
-func NewOpaqueGitBom(identity string) (Identifier, error) {
-	// TODO check if it matches the format
+func NewIdentifier(identity string) (Identifier, error) {
+	// TODO check if gitbom matches the format
 	_, err := hex.DecodeString(identity)
 	if err != nil {
 		return nil, err
 	}
-	return &opaqueGitBom{
+	return &identifier{
 		identity: identity,
 	}, nil
 }
