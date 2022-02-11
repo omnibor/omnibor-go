@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/facebookgo/symwalk"
 	"github.com/fkautz/gitbom-go"
 	"log"
 	"os"
-	"path/filepath"
 )
 
 func main() {
@@ -20,10 +20,11 @@ func main() {
 }
 
 func addToGitBom(gb gitbom.ArtifactTree, fileName string) error {
-	err := filepath.Walk(fileName, func(path string, info os.FileInfo, err error) error {
+	err := symwalk.Walk(fileName, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if !info.IsDir() {
 			f, err := os.Open(path)
 			if err != nil {
