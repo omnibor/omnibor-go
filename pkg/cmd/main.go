@@ -15,7 +15,6 @@ func init() {
 	x := cmdbox.Add("gitbom")
 
 	x.Method = func(args ...string) error {
-		log.SetFlags(log.Flags() | log.Lshortfile)
 		if len(args) == 0 {
 			fmt.Println(util.Emph("**NAME**", 0, -1) + `
         gitbom (v0.0.1) - Generate gitboms from files
