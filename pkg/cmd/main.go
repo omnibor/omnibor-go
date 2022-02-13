@@ -12,20 +12,7 @@ import (
 )
 
 func init() {
-	x := cmdbox.Add("gitbom", "h|help")
-	x.Summary = `Generate gitboms from files
-
-` +
-		util.Emph("**USAGE**", 0, -1) + `
-       gitbom [files]
-       gitbom [file] bom [input-files]`
-
-	x.Usage = `[NAME]`
-	x.Copyright = `Copyright 2022 gitbom-go contributors`
-	x.License = `SPDX-License-Identifier: Apache-2.0`
-	x.Version = `v0.0.1`
-	x.AddHelp()
-	x.Hidden = []string{"help"}
+	x := cmdbox.Add("gitbom")
 
 	x.Method = func(args ...string) error {
 		log.SetFlags(log.Flags() | log.Lshortfile)
@@ -44,10 +31,6 @@ func init() {
         gitbom (v0.0.1) Copyright 2022 gitbom-go contributors
         SPDX-License-Identifier: Apache-2.0
 `)
-			return nil
-		}
-		if len(args) == 1 && (args[0] == "help" || args[0] == "h") {
-			x.Call("help")
 			return nil
 		}
 
