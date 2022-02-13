@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 )
 
 func init() {
@@ -43,10 +44,7 @@ func init() {
 			}
 
 			// generate target gitbom with artifact tree
-			if err := os.MkdirAll(".gitbom", 0755); err != nil {
-				return err
-			}
-			if err := ioutil.WriteFile(".gitbom/"+gb.Identity(), []byte(gb.String()), 0644); err != nil {
+			if err := writeObject(".bom", gb); err != nil {
 				return err
 			}
 
@@ -59,7 +57,7 @@ func init() {
 				return err
 			}
 
-			if err := ioutil.WriteFile(".gitbom/"+gb2.Identity(), []byte(gb2.String()), 0644); err != nil {
+			if err := writeObject(".bom", gb2); err != nil {
 				return err
 			}
 
@@ -74,18 +72,23 @@ func init() {
 			}
 
 			// generate target gitbom with artifact tree
-			if err := os.MkdirAll(".gitbom", 0755); err != nil {
-				return err
-			}
-			if err := ioutil.WriteFile(".gitbom/"+gb.Identity(), []byte(gb.String()), 0644); err != nil {
-				return err
-			}
+			writeObject(".bom", gb)
 
 			fmt.Println(gb.Identity())
 		}
 
 		return nil
 	}
+}
+
+func writeObject(prefix string, gb gitbom.ArtifactTree) error {
+	objectDir := path.Join(prefix, "object", gb.Identity()[:2])
+	objectPath := path.Join(objectDir, gb.Identity()[2:])
+	os.MkdirAll(objectDir, 0755)
+	if err := ioutil.WriteFile(objectPath, []byte(gb.String()), 0644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func addPathToGitbom(gb gitbom.ArtifactTree, fileName string) error {

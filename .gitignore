@@ -21,4 +21,5 @@
 go.work
 
 .idea/
-.gitbom/
+.gitbom/ # old directory, no longer in use
+.bom/
