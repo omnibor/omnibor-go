@@ -24,8 +24,8 @@ func init() {
         gitbom [files]
         gitbom [file] bom [input-files]
 
-        gitbom will create a .gitbom/ directory in the current working
-        directory and store generated gitboms in .gitbom/
+        gitbom will create a .bom/ directory in the current working
+        directory and store generated gitboms in .bom/
 
 ` + util.Emph("**LEGAL**", 0, 01) + `
         gitbom (v0.0.1) Copyright 2022 gitbom-go contributors
