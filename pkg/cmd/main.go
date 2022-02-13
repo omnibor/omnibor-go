@@ -55,7 +55,9 @@ func init() {
 			if err != nil {
 				return err
 			}
-			addFileToGitbom(args[0], info, gb2, gb)
+			if err = addFileToGitbom(args[0], info, gb2, gb); err != nil {
+				return err
+			}
 
 			if err := ioutil.WriteFile(".gitbom/"+gb2.Identity(), []byte(gb2.String()), 0644); err != nil {
 				return err
