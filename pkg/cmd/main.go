@@ -5,25 +5,45 @@ import (
 	"github.com/facebookgo/symwalk"
 	"github.com/fkautz/gitbom-go"
 	"github.com/rwxrob/cmdbox"
+	"github.com/rwxrob/cmdbox/util"
 	"io/ioutil"
 	"log"
 	"os"
 )
 
 func init() {
-	x := cmdbox.Add("gitbom", "h|help", "bom")
-	x.Summary = "gitbom"
+	x := cmdbox.Add("gitbom", "h|help")
+	x.Summary = `Generate gitboms from files
+
+` +
+		util.Emph("**USAGE**", 0, -1) + `
+       gitbom [files]
+       gitbom [file] bom [input-files]`
+
 	x.Usage = `[NAME]`
 	x.Copyright = `Copyright 2022 gitbom-go contributors`
-	x.License = `Apache-2.0`
+	x.License = `SPDX-License-Identifier: Apache-2.0`
 	x.Version = `v0.0.1`
 	x.AddHelp()
-	x.Commands.Set("bom", "two")
+	x.Hidden = []string{"help"}
 
 	x.Method = func(args ...string) error {
 		log.SetFlags(log.Flags() | log.Lshortfile)
 		if len(args) == 0 {
-			x.Call("help")
+			fmt.Println(util.Emph("**NAME**", 0, -1) + `
+        gitbom (v0.0.1) - Generate gitboms from files
+
+` + util.Emph("**USAGE**", 0, 01) + `
+        gitbom [files]
+        gitbom [file] bom [input-files]
+
+        gitbom will create a .gitbom/ directory in the current working
+        directory and store generated gitboms in .gitbom/
+
+` + util.Emph("**LEGAL**", 0, 01) + `
+        gitbom (v0.0.1) Copyright 2022 gitbom-go contributors
+        SPDX-License-Identifier: Apache-2.0
+`)
 			return nil
 		}
 		if len(args) == 1 && (args[0] == "help" || args[0] == "h") {
