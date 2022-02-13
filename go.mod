@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/facebookgo/symwalk v0.0.0-20150726040526-42004b9f3222
+	github.com/rwxrob/cmdbox v0.7.8
 	github.com/stretchr/testify v1.7.0
 )
 
@@ -14,5 +15,6 @@ require (
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
 	github.com/facebookgo/testname v0.0.0-20150612200628-5443337c3a12 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
