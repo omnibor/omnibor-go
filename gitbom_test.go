@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -123,4 +125,33 @@ func TestInvalidIdentifier_ExtraSpaces(t *testing.T) {
 func TestInvalidIdentifier_VeryInvalid(t *testing.T) {
 	_, err := NewIdentifier(" 23294b0610492cf 55c1c4835216f20d376a287dd ")
 	assert.Error(t, err)
+}
+
+func BenchmarkNewGitBom(b *testing.B) {
+	dataset := generateDataset(b.N)
+
+	gb := NewGitBom()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		//fmt.Println(dataset[i])
+		gb.AddSha1Reference(dataset[i], nil)
+	}
+	b.StopTimer()
+
+	fmt.Println(len(gb.References()), len(dataset), b.N)
+}
+
+func generateDataset(n int) [][]byte {
+	dataset := make([][]byte, 0)
+	for i := 0; i < n; i++ {
+		buf := make([]byte, 64)
+		binary.LittleEndian.PutUint32(buf, uint32(i))
+		//fmt.Println(buf)
+		dataset = append(dataset, buf)
+	}
+	for i := 0; i < len(dataset); i++ {
+		//fmt.Println(dataset[i])
+	}
+	return dataset
 }
