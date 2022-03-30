@@ -29,6 +29,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // ArtifactTree provides a common interface that assists with the creation and management of a GitBOM document.
@@ -140,6 +141,7 @@ type Identifier interface {
 }
 
 type gitBom struct {
+	lock    sync.Mutex
 	gitRefs []Reference
 }
 
@@ -184,34 +186,36 @@ func (srv *gitBom) addGitRef(reader io.Reader, bom Identifier, hashAlgorithm has
 		return err
 	}
 
-	// refs may be unsorted
-	for _, cur := range srv.gitRefs {
-		if identity == cur.Identity() {
-			// we found the object in gitrefs, return
-			return nil
-		}
-	}
-
 	ref := reference{
 		identity: identity,
 		bom:      bom,
 	}
 
+	srv.lock.Lock()
 	srv.gitRefs = append(srv.gitRefs, ref)
+	srv.lock.Unlock()
 	return nil
 }
 
 func (srv *gitBom) References() []Reference {
+	srv.lock.Lock()
 	by(referenceSorter).sort(srv.gitRefs)
+	result := make([]Reference, 0, len(srv.gitRefs))
+	for _, ref := range srv.gitRefs {
+		result = append(result, ref)
+	}
+	srv.lock.Unlock()
 	return srv.gitRefs
 }
 
 func (srv *gitBom) String() string {
+	srv.lock.Lock()
 	by(referenceSorter).sort(srv.gitRefs)
 	refs := make([]string, 0)
 	for _, ref := range srv.gitRefs {
 		refs = append(refs, ref.String())
 	}
+	srv.lock.Unlock()
 	return strings.Join(refs, "")
 }
 
