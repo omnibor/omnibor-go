@@ -1,19 +1,18 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/facebookgo/symwalk"
 	"github.com/fkautz/gitbom-go"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/cmdbox/util"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 )
 
@@ -37,8 +36,8 @@ var Cmd = &bonzai.Cmd{
 	// no Call since has Commands, if had Call would only call if
 	// commands didn't match
 	Call: func(caller *bonzai.Cmd, args ...string) error {
-		printHelp()
-		return nil
+		_, err := printHelp()
+		return err
 	},
 }
 
@@ -57,16 +56,16 @@ var helpCmd = &bonzai.Cmd{
 	Call: helpCall,
 }
 
-func helpCall(caller *bonzai.Cmd, args ...string) error {
-	printHelp()
-	return nil
+func helpCall(_ *bonzai.Cmd, _ ...string) error {
+	_, err := printHelp()
+	return err
 }
 
-func artifactTreeCall(caller *bonzai.Cmd, args ...string) error {
+func artifactTreeCall(_ *bonzai.Cmd, args ...string) error {
 	wg := startAgents()
 	if len(args) == 0 {
-		printHelp()
-		return nil
+		_, err := printHelp()
+		return err
 	}
 
 	gb := gitbom.NewGitBom()
@@ -91,7 +90,7 @@ func artifactTreeCall(caller *bonzai.Cmd, args ...string) error {
 	return nil
 }
 
-var agentChan chan fileEvent = make(chan fileEvent)
+var agentChan = make(chan fileEvent)
 
 func startAgents() *sync.WaitGroup {
 	agentCount := 0
@@ -103,23 +102,23 @@ func startAgents() *sync.WaitGroup {
 	}
 	for i := 0; i < agentCount; i++ {
 		wg.Add(1)
-		go agent(agentChan, wg, i)
+		go agent(agentChan, wg)
 	}
 	return wg
 }
 
-func bomCall(caller *bonzai.Cmd, args ...string) error {
+func bomCall(_ *bonzai.Cmd, args ...string) error {
 	if len(args) == 0 {
-		printHelp()
-		return nil
+		_, err := printHelp()
+		return err
 	}
 
-	wg := sync.WaitGroup{}
+	wg := startAgents()
 
 	gb := gitbom.NewGitBom()
 
 	// generate artifact tree
-	for i := 2; i < len(args); i++ {
+	for i := 1; i < len(args); i++ {
 		if err := addPathToGitbom(gb, args[i], agentChan); err != nil {
 			return err
 		}
@@ -151,8 +150,9 @@ func bomCall(caller *bonzai.Cmd, args ...string) error {
 }
 
 func writeObject(prefix string, gb gitbom.ArtifactTree) error {
-	objectDir := path.Join(prefix, "object", gb.Identity()[:2])
-	objectPath := path.Join(objectDir, gb.Identity()[2:])
+	objs := strings.Split(gb.Identity(), ":")
+	objectDir := path.Join(prefix, "object", objs[0], objs[1][:2])
+	objectPath := path.Join(objectDir, objs[1][2:])
 	if err := os.MkdirAll(objectDir, 0755); err != nil {
 		log.Println(err)
 		return err
@@ -198,7 +198,7 @@ type fileEvent struct {
 	gb   gitbom.ArtifactTree
 }
 
-func agent(e <-chan fileEvent, wg *sync.WaitGroup, id int) {
+func agent(e <-chan fileEvent, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for ev := range e {
 		err2 := addFileToGitbom(ev.path, ev.info, ev.gb, nil)
@@ -220,12 +220,7 @@ func addFileToGitbom(path string, info os.FileInfo, gb gitbom.ArtifactTree, iden
 		}
 	}(f)
 
-	reader2 := &bytes.Buffer{}
-	reader1 := io.TeeReader(f, reader2)
-	if err := gb.AddSha1ReferenceFromReader(reader1, identifier, info.Size()); err != nil {
-		return err
-	}
-	if err := gb.AddSha256ReferenceFromReader(reader2, identifier, info.Size()); err != nil {
+	if err := gb.AddReferenceFromReader(f, identifier, info.Size()); err != nil {
 		return err
 	}
 	return nil
