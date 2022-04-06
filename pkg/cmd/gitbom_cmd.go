@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/facebookgo/symwalk"
-	"github.com/fkautz/gitbom-go"
+	"github.com/git-bom/gitbom-go"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/cmdbox/util"
 	"io/ioutil"
