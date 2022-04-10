@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/facebookgo/symwalk"
 	"github.com/git-bom/gitbom-go"
-	"github.com/rwxrob/bonzai"
+	Z "github.com/rwxrob/bonzai/z"
 	"github.com/rwxrob/cmdbox/util"
 	"io/ioutil"
 	"log"
@@ -16,14 +16,14 @@ import (
 	"sync"
 )
 
-var Cmd = &bonzai.Cmd{
+var Cmd = &Z.Cmd{
 	Name:      `gitbom`,
 	Summary:   `gitbom`,
 	Usage:     `[gitbom]`,
 	Version:   `v0.0.1`,
 	Copyright: `Copyright 2021 gitbom-go contributors`,
 	License:   `Apache-2`,
-	Commands:  []*bonzai.Cmd{helpCmd, artifactTreeCmd, bomCmd},
+	Commands:  []*Z.Cmd{helpCmd, artifactTreeCmd, bomCmd},
 
 	Description: `
 		The foo commands do foo stuff. You can start the description here
@@ -35,33 +35,33 @@ var Cmd = &bonzai.Cmd{
 
 	// no Call since has Commands, if had Call would only call if
 	// commands didn't match
-	Call: func(caller *bonzai.Cmd, args ...string) error {
+	Call: func(caller *Z.Cmd, args ...string) error {
 		_, err := printHelp()
 		return err
 	},
 }
 
-var artifactTreeCmd = &bonzai.Cmd{
+var artifactTreeCmd = &Z.Cmd{
 	Name: "artifact-tree",
 	Call: artifactTreeCall,
 }
 
-var bomCmd = &bonzai.Cmd{
+var bomCmd = &Z.Cmd{
 	Name: "bom",
 	Call: bomCall,
 }
 
-var helpCmd = &bonzai.Cmd{
+var helpCmd = &Z.Cmd{
 	Name: "help",
 	Call: helpCall,
 }
 
-func helpCall(_ *bonzai.Cmd, _ ...string) error {
+func helpCall(_ *Z.Cmd, _ ...string) error {
 	_, err := printHelp()
 	return err
 }
 
-func artifactTreeCall(_ *bonzai.Cmd, args ...string) error {
+func artifactTreeCall(_ *Z.Cmd, args ...string) error {
 	wg := startAgents()
 	if len(args) == 0 {
 		_, err := printHelp()
@@ -107,7 +107,7 @@ func startAgents() *sync.WaitGroup {
 	return wg
 }
 
-func bomCall(_ *bonzai.Cmd, args ...string) error {
+func bomCall(_ *Z.Cmd, args ...string) error {
 	if len(args) == 0 {
 		_, err := printHelp()
 		return err
