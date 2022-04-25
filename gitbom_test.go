@@ -53,39 +53,42 @@ func TestGitRef_LongRead(t *testing.T) {
 	assert.Equal(t, "", hash)
 }
 
+// TODO create sha256 version
 func TestFlatWorkflow(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
-	gb := NewGitBom()
+	gb := NewSha1GitBom()
 	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
 	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
 	assert.NoError(t, err)
-	expected := "blob sha1+sha256:04fea06420ca60892f73becee3614f6d023a4b7f+8df3dab4ddfa6eb2a34065cda27d95af2709d4d2658e1b5fbd145822acf42b28\n" +
-		"blob sha1+sha256:b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0+8aec4e4876f854f688d0ebfc8f37598f38e5fd6903cccc850ca36591175aeb60\n"
+	expected := "blob 04fea06420ca60892f73becee3614f6d023a4b7f\n" +
+		"blob b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0\n"
 	assert.Equal(t, expected, gb.String())
 
 	ref := gb.Identity()
 	assert.NoError(t, err)
-	assert.Equal(t, "sha1+sha256:f60c253f4fb136d620c7c325c7589423dbb12277+9fad028bb00bc3d47f1a3cac340f40f33899fa2938f708f24e47edcaa7984d3a", ref)
 
+	assert.Equal(t, "dc0be356e8c2ba26e66448d97db76ad050206574", ref)
 }
+
+// TODO add sha256
 func TestNestedWorkflow(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
-	gb := NewGitBom()
+	gb := NewSha1GitBom()
 	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
 	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
 	assert.NoError(t, err)
-	expected := "blob sha1+sha256:04fea06420ca60892f73becee3614f6d023a4b7f+8df3dab4ddfa6eb2a34065cda27d95af2709d4d2658e1b5fbd145822acf42b28\nblob sha1+sha256:b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0+8aec4e4876f854f688d0ebfc8f37598f38e5fd6903cccc850ca36591175aeb60\n"
+	expected := "blob 04fea06420ca60892f73becee3614f6d023a4b7f\nblob b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0\n"
 
 	assert.Equal(t, expected, gb.String())
 
 	ref := gb.Identity()
-	expected = "sha1+sha256:f60c253f4fb136d620c7c325c7589423dbb12277+9fad028bb00bc3d47f1a3cac340f40f33899fa2938f708f24e47edcaa7984d3a"
+	expected = "dc0be356e8c2ba26e66448d97db76ad050206574"
 
 	assert.Equal(t, expected, ref)
 
@@ -93,14 +96,14 @@ func TestNestedWorkflow(t *testing.T) {
 	string4 := "independent"
 	string5 := "opaque"
 
-	gb2 := NewGitBom()
+	gb2 := NewSha1GitBom()
 
 	err = gb2.AddReference([]byte(string3), gb)
 	assert.NoError(t, err)
 
 	err = gb2.AddReference([]byte(string4), nil)
 	assert.NoError(t, err)
-	expected = "blob sha1+sha256:23294b0610492cf55c1c4835216f20d376a287dd+1861fbb8d1e47ae6328232968bac77acfd7c9afa2f179afbcdae3fd1b0658a60 bom sha1+sha256:f60c253f4fb136d620c7c325c7589423dbb12277+9fad028bb00bc3d47f1a3cac340f40f33899fa2938f708f24e47edcaa7984d3a\nblob sha1+sha256:be78cc5602c5457f144a67e574b8f98b9dc2a1a0+539ecff67045bafbd8239c900704c28e66c8591058ff7e046e723b849055f97c\n"
+	expected = "blob 23294b0610492cf55c1c4835216f20d376a287dd bom dc0be356e8c2ba26e66448d97db76ad050206574\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n"
 
 	assert.Equal(t, expected, gb2.String())
 
@@ -108,7 +111,7 @@ func TestNestedWorkflow(t *testing.T) {
 	assert.NoError(t, err)
 	err = gb2.AddReference([]byte(string5), identifier)
 	assert.NoError(t, err)
-	expected = "blob sha1+sha256:23294b0610492cf55c1c4835216f20d376a287dd+1861fbb8d1e47ae6328232968bac77acfd7c9afa2f179afbcdae3fd1b0658a60 bom sha1+sha256:f60c253f4fb136d620c7c325c7589423dbb12277+9fad028bb00bc3d47f1a3cac340f40f33899fa2938f708f24e47edcaa7984d3a\nblob sha1+sha256:32898208a218272b0fa7549f60951d4eed2ed830+dcf17826ff7a346e6b09704314fb5ef4c9fcceb85c2936b45cab13bc7167991a bom a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812\nblob sha1+sha256:be78cc5602c5457f144a67e574b8f98b9dc2a1a0+539ecff67045bafbd8239c900704c28e66c8591058ff7e046e723b849055f97c\n"
+	expected = "blob 23294b0610492cf55c1c4835216f20d376a287dd bom dc0be356e8c2ba26e66448d97db76ad050206574\nblob 32898208a218272b0fa7549f60951d4eed2ed830 bom a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n"
 
 	assert.Equal(t, expected, gb2.String())
 }
@@ -146,7 +149,7 @@ func TestInvalidIdentifier_VeryInvalid(t *testing.T) {
 func BenchmarkNewGitBom(b *testing.B) {
 	dataset := generateDataset(b.N)
 
-	gb := NewGitBom()
+	gb := NewSha1GitBom()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
