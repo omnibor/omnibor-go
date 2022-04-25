@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 )
 
@@ -68,7 +67,7 @@ func artifactTreeCall(_ *bonzai.Cmd, args ...string) error {
 		return err
 	}
 
-	gb := gitbom.NewGitBom()
+	gb := gitbom.NewSha1GitBom()
 	for i := 0; i < len(args); i++ {
 		if err := addPathToGitbom(gb, args[i], agentChan); err != nil {
 			log.Println(args[i], err)
@@ -115,7 +114,7 @@ func bomCall(_ *bonzai.Cmd, args ...string) error {
 
 	wg := startAgents()
 
-	gb := gitbom.NewGitBom()
+	gb := gitbom.NewSha1GitBom()
 
 	// generate artifact tree
 	for i := 1; i < len(args); i++ {
@@ -132,7 +131,7 @@ func bomCall(_ *bonzai.Cmd, args ...string) error {
 		return err
 	}
 
-	gb2 := gitbom.NewGitBom()
+	gb2 := gitbom.NewSha1GitBom()
 	info, err := os.Stat(args[0])
 	if err != nil {
 		return err
@@ -150,9 +149,9 @@ func bomCall(_ *bonzai.Cmd, args ...string) error {
 }
 
 func writeObject(prefix string, gb gitbom.ArtifactTree) error {
-	objs := strings.Split(gb.Identity(), ":")
-	objectDir := path.Join(prefix, "object", objs[0], objs[1][:2])
-	objectPath := path.Join(objectDir, objs[1][2:])
+	objs := gb.Identity()
+	objectDir := path.Join(prefix, "object", objs[0:2])
+	objectPath := path.Join(objectDir, objs[2:])
 	if err := os.MkdirAll(objectDir, 0755); err != nil {
 		log.Println(err)
 		return err

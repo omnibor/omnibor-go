@@ -108,7 +108,7 @@ func (grs *referenceSort) Less(i, j int) bool {
 }
 
 func (ref reference) Identity() string {
-	return ref.hashType + ":" + ref.identity
+	return ref.identity
 }
 
 func (ref reference) Bom() Identifier {
@@ -116,7 +116,7 @@ func (ref reference) Bom() Identifier {
 }
 
 func (ref reference) String() string {
-	res := fmt.Sprintf("blob %s:%s", ref.hashType, ref.identity)
+	res := fmt.Sprintf("blob %s", ref.identity)
 	if ref.bom != nil {
 		res = fmt.Sprintf("%s bom %s", res, ref.bom.Identity())
 	}
@@ -130,8 +130,10 @@ type Identifier interface {
 }
 
 type gitBom struct {
-	lock    sync.Mutex
-	gitRefs []Reference
+	lock        sync.Mutex
+	gitRefs     []Reference
+	hashType    string
+	hashFactory func() []hash.Hash
 }
 
 // NewGitBom creates a new ArtifactTree object.
@@ -143,8 +145,22 @@ type gitBom struct {
 // Implementation details:
 // Adding a Reference is O(n) to discover duplicates.
 // Generating a ArtifactTree is O(n*log(n)) as it sorts the existing refs.
-func NewGitBom() ArtifactTree {
-	return &gitBom{}
+func NewSha1GitBom() ArtifactTree {
+	return &gitBom{
+		hashType: "sha1",
+		hashFactory: func() []hash.Hash {
+			return []hash.Hash{sha1.New()}
+		},
+	}
+}
+
+func NewSha256GitBom() ArtifactTree {
+	return &gitBom{
+		hashType: "sha256",
+		hashFactory: func() []hash.Hash {
+			return []hash.Hash{sha256.New()}
+		},
+	}
 }
 
 func (srv *gitBom) AddReference(obj []byte, bom Identifier) error {
@@ -157,16 +173,16 @@ func (srv *gitBom) AddReferenceFromReader(reader io.Reader, bom Identifier, objL
 }
 
 func (srv *gitBom) addGitRef(reader io.Reader, bom Identifier, length int64) error {
-	sha1Hasher := sha1.New()
-	sha256Hasher := sha256.New()
+	hashers := make([]hash.Hash, 0)
+	hashers = append(hashers, srv.hashFactory()...)
 
-	identity, err := generateGitHash(reader, length, sha1Hasher, sha256Hasher)
+	identity, err := generateGitHash(reader, length, hashers...)
 	if err != nil {
 		return err
 	}
 
 	ref := reference{
-		hashType: "sha1+sha256",
+		hashType: srv.hashType,
 		identity: identity,
 		bom:      bom,
 	}
@@ -221,8 +237,13 @@ func (srv *gitBom) sha256GitRef() string {
 	return res
 }
 
+// TODO simplify this
 func (srv *gitBom) Identity() string {
-	return "sha1+sha256:" + srv.sha1GitRef() + "+" + srv.sha256GitRef()
+	if srv.hashType == "sha1" {
+		return srv.sha1GitRef()
+	} else {
+		return srv.sha256GitRef()
+	}
 }
 
 func generateGitHash(reader io.Reader, length int64, hashAlgorithm ...hash.Hash) (string, error) {
