@@ -7,5 +7,5 @@ import (
 
 func main() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
-	gitbom.Cmd.Run()
+	gitbom.Run()
 }
