@@ -209,6 +209,5 @@ func printHelp() (int, error) {
 
        **LEGAL**
        gitbom (v0.0.1) Copyright 2022 gitbom-go contributors
-       SPDX-License-Identifier: Apache-2.0
-`)
+       SPDX-License-Identifier: Apache-2.0`)
 }
