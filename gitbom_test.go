@@ -2,8 +2,6 @@ package gitbom
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"testing"
@@ -11,50 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSha1GitRef(t *testing.T) {
-	buf := bytes.NewBufferString("hello world")
-
-	hasher := sha1.New()
-
-	hash, err := generateGitHash(buf, 11, hasher)
-	assert.NoError(t, err)
-	assert.Equal(t, "95d09f2b10159347eece71399a7e2e907ea3df4f", hash)
-}
-
-func TestNewSha256GitRef(t *testing.T) {
-	buf := bytes.NewBufferString("hello world")
-
-	hash, err := generateGitHash(buf, 11, sha256.New())
-	assert.NoError(t, err)
-	assert.Equal(t, "fee53a18d32820613c0527aa79be5cb30173c823a9b448fa4817767cc84c6f03", hash)
-}
-
-func TestNewSha1AndSha256GitRef(t *testing.T) {
-	buf := bytes.NewBufferString("hello world")
-
-	hash, err := generateGitHash(buf, 11, sha1.New(), sha256.New())
-	assert.NoError(t, err)
-	assert.Equal(t, "95d09f2b10159347eece71399a7e2e907ea3df4f+fee53a18d32820613c0527aa79be5cb30173c823a9b448fa4817767cc84c6f03", hash)
-}
-
-func TestGitRef_ShortRead(t *testing.T) {
-	buf := bytes.NewBufferString("hello world")
-
-	hash, err := generateGitHash(buf, 12, sha1.New())
-	assert.Error(t, err)
-	assert.Equal(t, "", hash)
-}
-
-func TestGitRef_LongRead(t *testing.T) {
-	buf := bytes.NewBufferString("hello world")
-
-	hash, err := generateGitHash(buf, 10, sha1.New())
-	assert.Error(t, err)
-	assert.Equal(t, "", hash)
-}
-
 // TODO create sha256 version
-func TestFlatWorkflow(t *testing.T) {
+func TestFlatWorkflowSha1(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
@@ -73,8 +29,27 @@ func TestFlatWorkflow(t *testing.T) {
 	assert.Equal(t, "dc0be356e8c2ba26e66448d97db76ad050206574", ref)
 }
 
+func TestFlatWorkflowSha256(t *testing.T) {
+	string1 := "hello"
+	string2 := "world"
+
+	gb := NewSha256GitBom()
+	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
+	assert.NoError(t, err)
+	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
+	assert.NoError(t, err)
+	expected := "blob 8aec4e4876f854f688d0ebfc8f37598f38e5fd6903cccc850ca36591175aeb60\n" +
+		"blob 8df3dab4ddfa6eb2a34065cda27d95af2709d4d2658e1b5fbd145822acf42b28\n"
+	assert.Equal(t, expected, gb.String())
+
+	ref := gb.Identity()
+	assert.NoError(t, err)
+
+	assert.Equal(t, "e32e7e7761709be17ef573556a82960d489ddf0092424f7db1c91d8363dde822", ref)
+}
+
 // TODO add sha256
-func TestNestedWorkflow(t *testing.T) {
+func TestNestedWorkflowSha1(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
@@ -112,6 +87,48 @@ func TestNestedWorkflow(t *testing.T) {
 	err = gb2.AddReference([]byte(string5), identifier)
 	assert.NoError(t, err)
 	expected = "blob 23294b0610492cf55c1c4835216f20d376a287dd bom dc0be356e8c2ba26e66448d97db76ad050206574\nblob 32898208a218272b0fa7549f60951d4eed2ed830 bom a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n"
+
+	assert.Equal(t, expected, gb2.String())
+}
+
+func TestMixedNestedWorkflow(t *testing.T) {
+	string1 := "hello"
+	string2 := "world"
+
+	gb := NewSha256GitBom()
+	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
+	assert.NoError(t, err)
+	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
+	assert.NoError(t, err)
+	expected := "blob 8aec4e4876f854f688d0ebfc8f37598f38e5fd6903cccc850ca36591175aeb60\nblob 8df3dab4ddfa6eb2a34065cda27d95af2709d4d2658e1b5fbd145822acf42b28\n"
+
+	assert.Equal(t, expected, gb.String())
+
+	ref := gb.Identity()
+	expected = "e32e7e7761709be17ef573556a82960d489ddf0092424f7db1c91d8363dde822"
+
+	assert.Equal(t, expected, ref)
+
+	string3 := "hello2"
+	string4 := "independent"
+	string5 := "opaque"
+
+	gb2 := NewSha1GitBom()
+
+	err = gb2.AddReference([]byte(string3), gb)
+	assert.NoError(t, err)
+
+	err = gb2.AddReference([]byte(string4), nil)
+	assert.NoError(t, err)
+	expected = "blob 23294b0610492cf55c1c4835216f20d376a287dd bom e32e7e7761709be17ef573556a82960d489ddf0092424f7db1c91d8363dde822\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n"
+
+	assert.Equal(t, expected, gb2.String())
+
+	identifier, err := NewIdentifier("a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812")
+	assert.NoError(t, err)
+	err = gb2.AddReference([]byte(string5), identifier)
+	assert.NoError(t, err)
+	expected = "blob 23294b0610492cf55c1c4835216f20d376a287dd bom e32e7e7761709be17ef573556a82960d489ddf0092424f7db1c91d8363dde822\nblob 32898208a218272b0fa7549f60951d4eed2ed830 bom a87d2b20b13568a5530ec6a59dacfdda8ee3cd1e3d63c9d13da26d27e3447812\nblob be78cc5602c5457f144a67e574b8f98b9dc2a1a0\n"
 
 	assert.Equal(t, expected, gb2.String())
 }

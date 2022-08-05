@@ -3,6 +3,7 @@ module github.com/git-bom/gitbom-go
 go 1.18
 
 require (
+	github.com/edwarnicke/gitoid v0.0.0-20220710194850-1be5bfda1f9d
 	github.com/facebookgo/symwalk v0.0.0-20150726040526-42004b9f3222
 	github.com/stretchr/testify v1.7.1
 )
