@@ -77,48 +77,6 @@ func startAgents() *sync.WaitGroup {
 	return wg
 }
 
-func bomCall(args ...string) error {
-	if len(args) == 0 {
-		_, err := printHelp()
-		return err
-	}
-
-	wg := startAgents()
-
-	gb := gitbom.NewSha1GitBom()
-
-	// generate artifact tree
-	for i := 1; i < len(args); i++ {
-		if err := addPathToGitbom(gb, args[i], agentChan); err != nil {
-			return err
-		}
-	}
-
-	close(agentChan)
-	wg.Wait()
-
-	// generate target gitbom with artifact tree
-	if err := writeObject(".bom", gb); err != nil {
-		return err
-	}
-
-	gb2 := gitbom.NewSha1GitBom()
-	info, err := os.Stat(args[0])
-	if err != nil {
-		return err
-	}
-	if err = addFileToGitbom(args[0], info, gb2, gb); err != nil {
-		return err
-	}
-
-	if err := writeObject(".bom", gb2); err != nil {
-		return err
-	}
-
-	fmt.Println(gb2.Identity())
-	return nil
-}
-
 func writeObject(prefix string, gb gitbom.ArtifactTree) error {
 	objs := gb.Identity()
 	objectDir := path.Join(prefix, "object", objs[0:2])
