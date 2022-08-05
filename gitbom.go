@@ -20,16 +20,14 @@ package gitbom
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/edwarnicke/gitoid"
 )
 
 // ArtifactTree provides a common interface that assists with the creation and management of a GitBOM document.
@@ -130,13 +128,12 @@ type Identifier interface {
 }
 
 type gitBom struct {
-	lock        sync.Mutex
-	gitRefs     []Reference
-	hashType    string
-	hashFactory func() []hash.Hash
+	lock          sync.Mutex
+	gitRefs       []Reference
+	gitoidOptions []gitoid.Option
 }
 
-// NewGitBom creates a new ArtifactTree object.
+// NewSha1GitBom creates a new ArtifactTree object.
 // Thread Safety: none, apply your own controls.
 //
 // Adding duplicate objects with the same Reference identity results in only one Reference entry.
@@ -146,20 +143,13 @@ type gitBom struct {
 // Adding a Reference is O(n) to discover duplicates.
 // Generating a ArtifactTree is O(n*log(n)) as it sorts the existing refs.
 func NewSha1GitBom() ArtifactTree {
-	return &gitBom{
-		hashType: "sha1",
-		hashFactory: func() []hash.Hash {
-			return []hash.Hash{sha1.New()}
-		},
-	}
+	return &gitBom{}
 }
 
 func NewSha256GitBom() ArtifactTree {
+	options := []gitoid.Option{gitoid.WithSha256()}
 	return &gitBom{
-		hashType: "sha256",
-		hashFactory: func() []hash.Hash {
-			return []hash.Hash{sha256.New()}
-		},
+		gitoidOptions: options,
 	}
 }
 
@@ -173,17 +163,22 @@ func (srv *gitBom) AddReferenceFromReader(reader io.Reader, bom Identifier, objL
 }
 
 func (srv *gitBom) addGitRef(reader io.Reader, bom Identifier, length int64) error {
-	hashers := make([]hash.Hash, 0)
-	hashers = append(hashers, srv.hashFactory()...)
+	// add an initial option specifying the length
+	options := []gitoid.Option{
+		gitoid.WithContentLength(length),
+	}
 
-	identity, err := generateGitHash(reader, length, hashers...)
+	// populate any options we need
+	for _, option := range srv.gitoidOptions {
+		options = append(options, option)
+	}
+	identity, err := gitoid.New(reader, options...)
 	if err != nil {
 		return err
 	}
 
 	ref := reference{
-		hashType: srv.hashType,
-		identity: identity,
+		identity: identity.String(),
 		bom:      bom,
 	}
 
@@ -215,76 +210,28 @@ func (srv *gitBom) String() string {
 	return strings.Join(refs, "")
 }
 
-func (srv *gitBom) sha1GitRef() string {
+func (srv *gitBom) gitRef() string {
 	generated := srv.String()
-	hashAlgorithm := sha1.New()
-	res, err := generateGitHash(bytes.NewBuffer([]byte(generated)), int64(len(generated)), hashAlgorithm)
+	// add an initial option specifying the length
+	options := []gitoid.Option{
+		gitoid.WithContentLength(int64(len(generated))),
+	}
+
+	// populate any options we need
+	for _, option := range srv.gitoidOptions {
+		options = append(options, option)
+	}
+
+	res, err := gitoid.New(bytes.NewBuffer([]byte(generated)), options...)
 	if err != nil {
 		// we should only see this if the runtime was fundamentally broken
 		panic(err)
 	}
-	return res
+	return res.String()
 }
 
-func (srv *gitBom) sha256GitRef() string {
-	generated := srv.String()
-	hashAlgorithm := sha256.New()
-	res, err := generateGitHash(bytes.NewBuffer([]byte(generated)), int64(len(generated)), hashAlgorithm)
-	if err != nil {
-		// we should only see this if the runtime was fundamentally broken
-		panic(err)
-	}
-	return res
-}
-
-// TODO simplify this
 func (srv *gitBom) Identity() string {
-	if srv.hashType == "sha1" {
-		return srv.sha1GitRef()
-	} else {
-		return srv.sha256GitRef()
-	}
-}
-
-func generateGitHash(reader io.Reader, length int64, hashAlgorithm ...hash.Hash) (string, error) {
-
-	writers := make([]io.Writer, 0)
-	for _, v := range hashAlgorithm {
-		writers = append(writers, v)
-	}
-
-	writer := io.MultiWriter(writers...)
-
-	// \u0000 is the unicode sequence for '\0'
-	header := fmt.Sprintf("blob %d\u0000", length)
-	n, err := writer.Write([]byte(header))
-	if err != nil {
-		return "", err
-	}
-	if n != len(header) {
-		return "", errors.New("impartial header write while generating git ref")
-	}
-
-	written, err := io.Copy(writer, reader)
-	if err != nil {
-		return "", err
-	}
-	if written < length {
-		return "", errors.New(fmt.Sprintf("short read from object: %d out of expected %d", n, length))
-	}
-
-	if written > length {
-		return "", errors.New(fmt.Sprintf("long read from object: %d out of expected %d", n, length))
-	}
-
-	results := make([]string, 0)
-	for _, v := range hashAlgorithm {
-		hashBytes := v.Sum([]byte{})
-		hashStr := hex.EncodeToString(hashBytes)
-		results = append(results, hashStr)
-	}
-
-	return strings.Join(results, "+"), nil
+	return srv.gitRef()
 }
 
 type identifier struct {
