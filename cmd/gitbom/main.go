@@ -7,5 +7,7 @@ import (
 
 func main() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
-	gitbom.Run()
+	if err := gitbom.Run(); err != nil {
+		log.Fatalln(err)
+	}
 }
