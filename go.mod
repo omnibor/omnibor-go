@@ -1,4 +1,4 @@
-module github.com/git-bom/gitbom-go
+module github.com/omnibor/omnibor-go
 
 go 1.18
 

@@ -1,22 +1,19 @@
 /*
-	Package gitbom implements GitBOM.
+Package omnibor implements OmniBOR.
 
-	Read the spec at https://hackmd.io/@aeva/draft-gitbom-spec
+Read the spec at https://github.com/omnibor/spec/blob/main/SPEC.md
 
-	GitBOM is neither git nor an SBOM.
+It is an application of the git DAG, a widely used merkle tree with a flat-file storage format, to the challenge of creating build artifact trees in today’s language-heterogeneous open source environments.
+by generating artifact trees at build time, embedding the hash of the tree in produced artifacts, and referencing that hash in the next build step, OmniBOR will enable the zero-end-user-effort creation of verifiable build trees. Furthermore, it will enable launch-time comparison of vulnerability data against a complete artifact tree for both open source and proprietary projects (if vuln data is traceable back to source file).
 
+Objective
+It is desirable to enable efficient launch-time comparison of the verifiable and complete build tree of any executable component [1] against a then-current list of undesirable source files [2] which are known to be undesirable, where such a build tree contains unique referents for all sources from which the given executable object was composed.
 
-	It is an application of the git DAG, a widely used merkle tree with a flat-file storage format, to the challenge of creating build artifact trees in today’s language-heterogeneous open source environments.
-	by generating artifact trees at build time, embedding the hash of the tree in produced artifacts, and referencing that hash in the next build step, GitBOM will enable the zero-end-user-effort creation of verifiable build trees. Furthermore, it will enable launch-time comparison of vulnerability data against a complete artifact tree for both open source and proprietary projects (if vuln data is traceable back to source file).
+[1]: binary, dynamically-linked library, container image, etc.
 
-	Objective
-	It is desirable to enable efficient launch-time comparison of the verifiable and complete build tree of any executable component [1] against a then-current list of undesirable source files [2] which are known to be undesirable, where such a build tree contains unique referents for all sources from which the given executable object was composed.
-
-	[1]: binary, dynamically-linked library, container image, etc.
-
-	[2]: because vulnerabilities may be discovered between the time an executable is created and the time when it is run, these processes must be decoupled
+[2]: because vulnerabilities may be discovered between the time an executable is created and the time when it is run, these processes must be decoupled
 */
-package gitbom
+package omnibor
 
 import (
 	"bytes"
@@ -30,18 +27,18 @@ import (
 	"github.com/edwarnicke/gitoid"
 )
 
-// ArtifactTree provides a common interface that assists with the creation and management of a GitBOM document.
+// ArtifactTree provides a common interface that assists with the creation and management of an OmniBOR document.
 type ArtifactTree interface {
 	Identifier
 
-	// AddReference adds a SHA1+SHA256 based git reference to the current GitBOM document.
+	// AddReference adds a SHA1+SHA256 based git reference to the current OmniBOR document.
 	// obj []byte is the byte array to be tagged in the GitRef.
-	// bom Identifier is the gitbom identifier of the artifact tree used to create the object.
+	// bom Identifier is the omnibor identifier of the artifact tree used to create the object.
 	// The resulting reference is based on the GitRef format.
 	// It returns an error if the SHA1 or SHA256 implementations fails.
 	AddReference(obj []byte, bom Identifier) error
 
-	// AddReferenceFromReader adds a SHA1+SHA256 based git reference to the current GitBOM document.
+	// AddReferenceFromReader adds a SHA1+SHA256 based git reference to the current OmniBOR document.
 	// The resulting reference is based on the GitRef format.
 	// The io.Reader will be continuously be read until the reader returns a non-null error.
 	// If the io.Reader returns io.EOF, the read is considered to be complete.
@@ -53,7 +50,7 @@ type ArtifactTree interface {
 	// References Returns a lsit of references in the order it will be printed.
 	References() []Reference
 
-	// String Returns the string representation of the GitBOM.
+	// String Returns the string representation of the OmniBOR.
 	String() string
 }
 
@@ -127,13 +124,13 @@ type Identifier interface {
 	Identity() string
 }
 
-type gitBom struct {
+type omniBor struct {
 	lock          sync.Mutex
 	gitRefs       []Reference
 	gitoidOptions []gitoid.Option
 }
 
-// NewSha1GitBom creates a new ArtifactTree object.
+// NewSha1OmniBOR creates a new ArtifactTree object.
 // Thread Safety: none, apply your own controls.
 //
 // Adding duplicate objects with the same Reference identity results in only one Reference entry.
@@ -142,27 +139,27 @@ type gitBom struct {
 // Implementation details:
 // Adding a Reference is O(n) to discover duplicates.
 // Generating a ArtifactTree is O(n*log(n)) as it sorts the existing refs.
-func NewSha1GitBom() ArtifactTree {
-	return &gitBom{}
+func NewSha1OmniBOR() ArtifactTree {
+	return &omniBor{}
 }
 
-func NewSha256GitBom() ArtifactTree {
+func NewSha256OmniBOR() ArtifactTree {
 	options := []gitoid.Option{gitoid.WithSha256()}
-	return &gitBom{
+	return &omniBor{
 		gitoidOptions: options,
 	}
 }
 
-func (srv *gitBom) AddReference(obj []byte, bom Identifier) error {
+func (srv *omniBor) AddReference(obj []byte, bom Identifier) error {
 	reader := bytes.NewBuffer(obj)
 	return srv.addGitRef(reader, bom, int64(len(obj)))
 }
 
-func (srv *gitBom) AddReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error {
+func (srv *omniBor) AddReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error {
 	return srv.addGitRef(reader, bom, objLength)
 }
 
-func (srv *gitBom) addGitRef(reader io.Reader, bom Identifier, length int64) error {
+func (srv *omniBor) addGitRef(reader io.Reader, bom Identifier, length int64) error {
 	// add an initial option specifying the length
 	options := []gitoid.Option{
 		gitoid.WithContentLength(length),
@@ -188,7 +185,7 @@ func (srv *gitBom) addGitRef(reader io.Reader, bom Identifier, length int64) err
 	return nil
 }
 
-func (srv *gitBom) References() []Reference {
+func (srv *omniBor) References() []Reference {
 	srv.lock.Lock()
 	by(referenceSorter).sort(srv.gitRefs)
 	result := make([]Reference, 0, len(srv.gitRefs))
@@ -199,7 +196,7 @@ func (srv *gitBom) References() []Reference {
 	return srv.gitRefs
 }
 
-func (srv *gitBom) String() string {
+func (srv *omniBor) String() string {
 	srv.lock.Lock()
 	by(referenceSorter).sort(srv.gitRefs)
 	refs := make([]string, 0)
@@ -210,7 +207,7 @@ func (srv *gitBom) String() string {
 	return strings.Join(refs, "")
 }
 
-func (srv *gitBom) gitRef() string {
+func (srv *omniBor) gitRef() string {
 	generated := srv.String()
 	// add an initial option specifying the length
 	options := []gitoid.Option{
@@ -230,7 +227,7 @@ func (srv *gitBom) gitRef() string {
 	return res.String()
 }
 
-func (srv *gitBom) Identity() string {
+func (srv *omniBor) Identity() string {
 	return srv.gitRef()
 }
 
@@ -243,7 +240,7 @@ func (gb identifier) Identity() string {
 }
 
 func NewIdentifier(identity string) (Identifier, error) {
-	// TODO check if gitbom matches the format
+	// TODO check if omnibor matches the format
 	_, err := hex.DecodeString(identity)
 	if err != nil {
 		return nil, err
