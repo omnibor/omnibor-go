@@ -1,4 +1,4 @@
-package gitbom
+package omnibor
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ func TestFlatWorkflowSha1(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
-	gb := NewSha1GitBom()
+	gb := NewSha1OmniBOR()
 	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
 	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
@@ -33,7 +33,7 @@ func TestFlatWorkflowSha256(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
-	gb := NewSha256GitBom()
+	gb := NewSha256OmniBOR()
 	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
 	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
@@ -53,7 +53,7 @@ func TestNestedWorkflowSha1(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
-	gb := NewSha1GitBom()
+	gb := NewSha1OmniBOR()
 	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
 	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
@@ -71,7 +71,7 @@ func TestNestedWorkflowSha1(t *testing.T) {
 	string4 := "independent"
 	string5 := "opaque"
 
-	gb2 := NewSha1GitBom()
+	gb2 := NewSha1OmniBOR()
 
 	err = gb2.AddReference([]byte(string3), gb)
 	assert.NoError(t, err)
@@ -95,7 +95,7 @@ func TestMixedNestedWorkflow(t *testing.T) {
 	string1 := "hello"
 	string2 := "world"
 
-	gb := NewSha256GitBom()
+	gb := NewSha256OmniBOR()
 	err := gb.AddReferenceFromReader(bytes.NewBufferString(string1), nil, int64(len(string1)))
 	assert.NoError(t, err)
 	err = gb.AddReferenceFromReader(bytes.NewBufferString(string2), nil, int64(len(string2)))
@@ -113,7 +113,7 @@ func TestMixedNestedWorkflow(t *testing.T) {
 	string4 := "independent"
 	string5 := "opaque"
 
-	gb2 := NewSha1GitBom()
+	gb2 := NewSha1OmniBOR()
 
 	err = gb2.AddReference([]byte(string3), gb)
 	assert.NoError(t, err)
@@ -163,10 +163,10 @@ func TestInvalidIdentifier_VeryInvalid(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func BenchmarkNewGitBom(b *testing.B) {
+func BenchmarkNewOmniBOR(b *testing.B) {
 	dataset := generateDataset(b.N)
 
-	gb := NewSha1GitBom()
+	gb := NewSha1OmniBOR()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

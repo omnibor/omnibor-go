@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/facebookgo/symwalk"
-	"github.com/git-bom/gitbom-go"
+	omnibor "github.com/omnibor/omnibor-go"
 	"io/ioutil"
 	"log"
 	"os"
@@ -38,9 +38,9 @@ func artifactTreeCall(args ...string) error {
 		return err
 	}
 
-	gb := gitbom.NewSha1GitBom()
+	gb := omnibor.NewSha1OmniBOR()
 	for i := 0; i < len(args); i++ {
-		if err := addPathToGitbom(gb, args[i], agentChan); err != nil {
+		if err := addPathToOmniBOR(gb, args[i], agentChan); err != nil {
 			log.Println(args[i], err)
 			return err
 		}
@@ -49,7 +49,7 @@ func artifactTreeCall(args ...string) error {
 	close(agentChan)
 	wg.Wait()
 
-	// generate target gitbom with artifact tree
+	// generate target omnibor with artifact tree
 	if err := writeObject(".bom", gb); err != nil {
 		log.Println(err)
 		return err
@@ -77,7 +77,7 @@ func startAgents() *sync.WaitGroup {
 	return wg
 }
 
-func writeObject(prefix string, gb gitbom.ArtifactTree) error {
+func writeObject(prefix string, gb omnibor.ArtifactTree) error {
 	objs := gb.Identity()
 	objectDir := path.Join(prefix, "object", objs[0:2])
 	objectPath := path.Join(objectDir, objs[2:])
@@ -91,7 +91,7 @@ func writeObject(prefix string, gb gitbom.ArtifactTree) error {
 	return nil
 }
 
-func addPathToGitbom(gb gitbom.ArtifactTree, fileName string, agentChan chan<- fileEvent) error {
+func addPathToOmniBOR(gb omnibor.ArtifactTree, fileName string, agentChan chan<- fileEvent) error {
 	err := symwalk.Walk(fileName, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -123,20 +123,20 @@ func addPathToGitbom(gb gitbom.ArtifactTree, fileName string, agentChan chan<- f
 type fileEvent struct {
 	path string
 	info os.FileInfo
-	gb   gitbom.ArtifactTree
+	gb   omnibor.ArtifactTree
 }
 
 func agent(e <-chan fileEvent, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for ev := range e {
-		err2 := addFileToGitbom(ev.path, ev.info, ev.gb, nil)
+		err2 := addFileToOmniBOR(ev.path, ev.info, ev.gb, nil)
 		if err2 != nil {
 			log.Println("ERROR", ev.path)
 		}
 	}
 }
 
-func addFileToGitbom(path string, info os.FileInfo, gb gitbom.ArtifactTree, identifier gitbom.Identifier) error {
+func addFileToOmniBOR(path string, info os.FileInfo, gb omnibor.ArtifactTree, identifier omnibor.Identifier) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -156,16 +156,16 @@ func addFileToGitbom(path string, info os.FileInfo, gb gitbom.ArtifactTree, iden
 
 func printHelp() (int, error) {
 	return fmt.Println(`
-       gitbom (v0.0.1) - Generate gitboms from files
+       omnibor (v0.0.1) - Generate OmniBOR ADG from files
 
        **USAGE**
-       gitbom artifact-tree [files]
-       gitbom bom [artifact-file] [artifact-tree-files [artifact-tree files...]]
+       omnibor artifact-tree [files]
+       omnibor bom [artifact-file] [artifact-tree-files [artifact-tree files...]]
 
-       gitbom will create a .bom/ directory in the current working
-       directory and store generated gitboms in .bom/
+       omnibor will create a .bom/ directory in the current working
+       directory and store generated OmniBOR ADGs in .bom/
 
        **LEGAL**
-       gitbom (v0.0.1) Copyright 2022 gitbom-go contributors
+       omnibor (v0.0.2) Copyright 2023 omnibor-go contributors
        SPDX-License-Identifier: Apache-2.0`)
 }
