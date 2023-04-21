@@ -47,6 +47,10 @@ type ArtifactTree interface {
 	// If the amount of bytes read does not match the stated object length, an error is returned.
 	AddReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error
 
+	// AddExistingReference adds an existing pre-computed reference
+	// The string must be a valid gitoid identifier.
+	AddExistingReference(s string) error
+
 	// References Returns a lsit of references in the order it will be printed.
 	References() []Reference
 
@@ -128,6 +132,7 @@ type omniBor struct {
 	lock          sync.Mutex
 	gitRefs       []Reference
 	gitoidOptions []gitoid.Option
+	hashType      string
 }
 
 // NewSha1OmniBOR creates a new ArtifactTree object.
@@ -140,13 +145,16 @@ type omniBor struct {
 // Adding a Reference is O(n) to discover duplicates.
 // Generating a ArtifactTree is O(n*log(n)) as it sorts the existing refs.
 func NewSha1OmniBOR() ArtifactTree {
-	return &omniBor{}
+	return &omniBor{
+		hashType: "sha1",
+	}
 }
 
 func NewSha256OmniBOR() ArtifactTree {
 	options := []gitoid.Option{gitoid.WithSha256()}
 	return &omniBor{
 		gitoidOptions: options,
+		hashType:      "sha256",
 	}
 }
 
@@ -157,6 +165,32 @@ func (srv *omniBor) AddReference(obj []byte, bom Identifier) error {
 
 func (srv *omniBor) AddReferenceFromReader(reader io.Reader, bom Identifier, objLength int64) error {
 	return srv.addGitRef(reader, bom, objLength)
+}
+
+func (srv *omniBor) AddExistingReference(input string) error {
+	// if srv is using sha1, check that the input is a valid hex sha1 and length
+	// if srv is in sha256 mode, set hashLength to the length of a sha256 hash
+	hashLength := 40
+	if srv.hashType == "sha256" {
+		hashLength = 64
+	}
+
+	if len(input) != hashLength {
+		return fmt.Errorf("invalid hash length: %d", len(input))
+	}
+	if _, err := hex.DecodeString(input); err != nil {
+		return err
+	}
+
+	ref := reference{
+		identity: input,
+	}
+
+	srv.lock.Lock()
+	srv.gitRefs = append(srv.gitRefs, ref)
+	srv.lock.Unlock()
+
+	return nil
 }
 
 func (srv *omniBor) addGitRef(reader io.Reader, bom Identifier, length int64) error {

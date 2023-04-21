@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/edwarnicke/gitoid"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -160,6 +161,78 @@ func TestInvalidIdentifier_ExtraSpaces(t *testing.T) {
 
 func TestInvalidIdentifier_VeryInvalid(t *testing.T) {
 	_, err := NewIdentifier(" 23294b0610492cf 55c1c4835216f20d376a287dd ")
+	assert.Error(t, err)
+}
+
+func TestAddingExistingReferenceSha1(t *testing.T) {
+	string1 := "hello"
+	string2 := "world"
+
+	gid1, _ := gitoid.New(bytes.NewBufferString(string1))
+	gid2, _ := gitoid.New(bytes.NewBufferString(string2))
+
+	gb := NewSha1OmniBOR()
+	err := gb.AddExistingReference(gid1.String())
+	assert.NoError(t, err)
+	err = gb.AddExistingReference(gid2.String())
+	assert.NoError(t, err)
+	expected := "blob 04fea06420ca60892f73becee3614f6d023a4b7f\nblob b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0\n"
+
+	assert.Equal(t, expected, gb.String())
+}
+
+func TestAddingExistingReferenceSha256(t *testing.T) {
+	string1 := "hello"
+	string2 := "world"
+
+	gid1, _ := gitoid.New(bytes.NewBufferString(string1), gitoid.WithSha256())
+	gid2, _ := gitoid.New(bytes.NewBufferString(string2), gitoid.WithSha256())
+
+	gb := NewSha256OmniBOR()
+	err := gb.AddExistingReference(gid1.String())
+	assert.NoError(t, err)
+	err = gb.AddExistingReference(gid2.String())
+	assert.NoError(t, err)
+	expected := "blob 8aec4e4876f854f688d0ebfc8f37598f38e5fd6903cccc850ca36591175aeb60\nblob 8df3dab4ddfa6eb2a34065cda27d95af2709d4d2658e1b5fbd145822acf42b28\n"
+
+	assert.Equal(t, expected, gb.String())
+}
+
+func TestAddExistingMalformedSha1(t *testing.T) {
+	string1 := "hello"
+
+	gid1, _ := gitoid.New(bytes.NewBufferString(string1))
+
+	gb := NewSha1OmniBOR()
+	err := gb.AddExistingReference(gid1.String()[1:])
+	assert.Error(t, err)
+
+	malformedHash := gid1.String()
+	malformedHash = "g" + malformedHash[1:]
+	err = gb.AddExistingReference(malformedHash)
+	assert.Error(t, err)
+
+	gid256, _ := gitoid.New(bytes.NewBufferString(string1), gitoid.WithSha256())
+	err = gb.AddExistingReference(gid256.String())
+	assert.Error(t, err)
+}
+
+func TestAddExistingMalformedSha256(t *testing.T) {
+	string1 := "hello"
+
+	gid1, _ := gitoid.New(bytes.NewBufferString(string1), gitoid.WithSha256())
+
+	gb := NewSha256OmniBOR()
+	err := gb.AddExistingReference(gid1.String()[1:])
+	assert.Error(t, err)
+
+	malformedHash := gid1.String()
+	malformedHash = "g" + malformedHash[1:]
+	err = gb.AddExistingReference(malformedHash)
+	assert.Error(t, err)
+
+	gidsha1, _ := gitoid.New(bytes.NewBufferString(string1))
+	err = gb.AddExistingReference(gidsha1.String())
 	assert.Error(t, err)
 }
 
