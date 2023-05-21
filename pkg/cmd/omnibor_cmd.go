@@ -163,7 +163,7 @@ func printHelp() (int, error) {
        omnibor bom [artifact-file] [artifact-tree-files [artifact-tree files...]]
 
        omnibor will create a .bom/ directory in the current working
-       directory and store generated OmniBOR ADGs in .bom/
+       directory and store generated OmniBOR Sha1ADGs in .bom/
 
        **LEGAL**
        omnibor (v0.0.2) Copyright 2023 omnibor-go contributors
