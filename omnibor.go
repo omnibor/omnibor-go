@@ -186,6 +186,13 @@ func (srv *omniBor) AddExistingReference(input string) error {
 		identity: input,
 	}
 
+	// check if the input is already in the gitRefs list
+	for _, existingRef := range srv.gitRefs {
+		if existingRef.Identity() == input {
+			return nil
+		}
+	}
+
 	srv.lock.Lock()
 	srv.gitRefs = append(srv.gitRefs, ref)
 	srv.lock.Unlock()
